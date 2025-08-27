@@ -9,6 +9,8 @@
     "dev": "tsx src/index.ts",
     "test": "jest",
     "lint": "eslint src/**/*.ts"
+    "lint": "eslint src/**/*.ts",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": ["bitcoin", "blockchain", "transaction", "scanner", "monitoring"],
   "author": "BTC Scanner Bot",

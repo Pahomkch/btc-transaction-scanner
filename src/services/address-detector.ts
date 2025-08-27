@@ -4,6 +4,7 @@ import {
   AddressInvolvement,
   TransactionInput,
   TransactionOutput,
+  AddressType,
 } from "../types/bitcoin";
 import { BlockParser } from "./block-parser";
 
@@ -12,7 +13,7 @@ export class AddressDetector {
   private addressNames: Map<string, string>;
   private blockParser: BlockParser;
 
-  constructor(addresses: WatchedAddresses) {
+  constructor(addresses: WatchedAddresses, private rpcClient?: any) {
     this.watchedAddresses = new Set(Object.keys(addresses));
     this.addressNames = new Map(Object.entries(addresses));
     this.blockParser = new BlockParser();
@@ -73,7 +74,9 @@ export class AddressDetector {
         }
 
         if (direction === "input") {
-          amount = this.extractInputAmountFromTransactionPart();
+          amount = await this.extractInputAmountFromTransactionPart(
+            transactionParts[index] as TransactionInput
+          );
         }
 
         const involvement: AddressInvolvement = {
@@ -81,6 +84,7 @@ export class AddressDetector {
           name: this.addressNames.get(address),
           direction,
           amount,
+          addressType: this.determineAddressType(address),
         };
 
         addressInvolvements.push(involvement);
@@ -96,14 +100,29 @@ export class AddressDetector {
     return transactionPart.value || 0;
   }
 
-  // FIXME
-  // FIXME
-  // FIXME
-  // FIXME
-  private extractInputAmountFromTransactionPart(): number {
-    // Для входов нужно получить сумму из предыдущей транзакции
-    // В рамках этого ТЗ возвращаем 0, в продакшене нужен дополнительный RPC вызов
-    return 0; // Требует getRawTransaction для предыдущей транзакции
+  private async extractInputAmountFromTransactionPart(
+    input: TransactionInput
+  ): Promise<number> {
+    if (!this.rpcClient) {
+      console.warn("RPC client not available for input amount extraction");
+      return 0;
+    }
+
+    try {
+      // Получаем предыдущую транзакцию
+      const prevTx = await this.rpcClient.getRawTransaction(input.txid);
+      
+      // Извлекаем сумму из соответствующего output
+      if (prevTx && prevTx.vout && prevTx.vout[input.vout]) {
+        return prevTx.vout[input.vout].value;
+      }
+      
+      console.warn(`Unable to find vout ${input.vout} in transaction ${input.txid}`);
+      return 0;
+    } catch (error) {
+      console.warn(`Failed to get input amount for ${input.txid}:${input.vout}:`, error);
+      return 0;
+    }
   }
 
   private determineTransactionType(
@@ -152,5 +171,38 @@ export class AddressDetector {
     return addressInvolvements.reduce((total, involvement) => {
       return total + involvement.amount;
     }, 0);
+  }
+
+  private determineAddressType(address: string): AddressType {
+    // Legacy P2PKH адреса начинаются с '1'
+    if (address.startsWith('1')) {
+      return 'Legacy P2PKH';
+    }
+    
+    // Legacy P2SH адреса начинаются с '3' 
+    if (address.startsWith('3')) {
+      return 'Legacy P2SH';
+    }
+    
+    // SegWit Bech32 адреса начинаются с 'bc1q'
+    if (address.startsWith('bc1q')) {
+      return 'SegWit Bech32';
+    }
+    
+    // Taproot адреса начинаются с 'bc1p'
+    if (address.startsWith('bc1p')) {
+      return 'Taproot P2TR';
+    }
+    
+    // Testnet адреса (для полноты)
+    if (address.startsWith('m') || address.startsWith('n') || address.startsWith('2')) {
+      return 'Unknown'; // Testnet адреса не классифицируем детально
+    }
+    
+    if (address.startsWith('tb1q') || address.startsWith('tb1p')) {
+      return 'Unknown'; // Testnet SegWit/Taproot
+    }
+    
+    return 'Unknown';
   }
 }

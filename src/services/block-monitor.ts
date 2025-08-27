@@ -23,11 +23,7 @@ export class BlockMonitor {
   constructor(config: Config) {
     this.config = config;
 
-    this.rpcClient = new BitcoinRPCClient(
-      config.rpcUrl,
-      config.rpcUser,
-      config.rpcPassword
-    );
+    this.rpcClient = new BitcoinRPCClient(config.rpcUrl);
 
     this.blockParser = new BlockParser();
 
@@ -37,7 +33,7 @@ export class BlockMonitor {
       watchedAddresses[addr.address] = addr.name || addr.address;
     });
 
-    this.addressDetector = new AddressDetector(watchedAddresses);
+    this.addressDetector = new AddressDetector(watchedAddresses, this.rpcClient);
     this.notificationService = new NotificationService(config.usdPriceEnabled);
   }
 
@@ -131,9 +127,7 @@ export class BlockMonitor {
       if (currentBlock > this.lastProcessedBlock) {
         console.log(`New blocks detected: ${currentBlock}`);
 
-        // Обрабатываем все пропущенные блоки
-        // Promise.all НЕ используем чтобы не превысить лимит памяти
-        // Обрабатываем блоки последовательно для экономии RAM
+        // Обрабатываем все пропущенные блоки последовательно для экономии RAM
         for (
           let blockHeight = this.lastProcessedBlock + 1;
           blockHeight <= currentBlock;
@@ -179,10 +173,6 @@ export class BlockMonitor {
       const blockHash = await this.rpcClient.getBlockHash(blockHeight);
       const block = await this.rpcClient.getBlock(blockHash);
 
-      console.log(
-        `Processing block ${blockHeight} with ${block.tx.length} transactions`
-      );
-
       let transactionCount = 0;
       let addressesMatched = 0;
 
@@ -214,7 +204,6 @@ export class BlockMonitor {
             this.config.maxMemoryMB
           );
           if (memoryCheck.usage > this.config.maxMemoryMB * 0.9) {
-            // Принудительная сборка мусора при приближении к лимиту
             if (global.gc) {
               global.gc();
             }
@@ -236,9 +225,9 @@ export class BlockMonitor {
         notification_latency_ms: Date.now() - monitoringStartTime,
       });
 
-      console.log(
-        `Block ${blockHeight} processed: ${transactionCount} txs, ${addressesMatched} matched`
-      );
+      if (addressesMatched > 0) {
+        console.log(`✅ Block ${blockHeight}: Found ${addressesMatched} matched transactions from ${transactionCount} total`);
+      }
     } catch (error) {
       console.error(`Failed to process block ${blockHeight}:`, error);
 

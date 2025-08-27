@@ -18,7 +18,7 @@ class BitcoinTransactionScanner {
     let config: Config;
 
     try {
-      const configPath = path.join(__dirname, "../src/config/config.json");
+      const configPath = process.env.CONFIG_PATH || path.join(__dirname, "../src/config/config.json");
 
       if (fs.existsSync(configPath)) {
         const configFile = fs.readFileSync(configPath, "utf8");

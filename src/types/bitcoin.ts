@@ -113,7 +113,13 @@ export interface TransactionNotification {
   totalBTC: number;
   totalUSD?: number;
   balanceDifference?: number; // For transactions with both incoming/outgoing
-  opReturnData?: string; // Hex encoded OP_RETURN data
+  opReturnData?: OpReturnData;
+}
+
+export interface OpReturnData {
+  hex: string;
+  decoded?: string;
+  decodingSuccess: boolean;
 }
 
 export interface AddressInvolvement {
@@ -122,7 +128,10 @@ export interface AddressInvolvement {
   direction: 'input' | 'output';
   amount: number; // BTC amount
   amountUSD?: number;
+  addressType?: AddressType;
 }
+
+export type AddressType = 'Legacy P2PKH' | 'Legacy P2SH' | 'SegWit Bech32' | 'Taproot P2TR' | 'Unknown';
 
 // Performance monitoring
 export interface MemoryUsage {

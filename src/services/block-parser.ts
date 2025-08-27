@@ -3,6 +3,7 @@ import {
   Transaction,
   TransactionOutput,
   PerformanceMetrics,
+  OpReturnData,
 } from "../types/bitcoin";
 
 export class BlockParser {
@@ -59,17 +60,56 @@ export class BlockParser {
     return [];
   }
 
-  extractOpReturnData(transaction: Transaction): string | null {
+  extractOpReturnData(transaction: Transaction): OpReturnData | null {
     for (const output of transaction.vout) {
       if (output.scriptPubKey.type === "nulldata") {
         const hex = output.scriptPubKey.hex;
 
         if (hex.startsWith("6a")) {
-          return hex.substring(4);
+          // Пропускаем OP_RETURN опкод (6a) и длину данных
+          // Первый байт после 6a - это длина данных
+          let dataHex = hex.substring(4); // Простое удаление первых 2 байтов
+          
+          // Более правильный парсинг длины данных
+          if (hex.length >= 6) {
+            const lengthByte = hex.substring(2, 4);
+            const length = parseInt(lengthByte, 16);
+            if (length > 0 && hex.length >= 4 + length * 2) {
+              dataHex = hex.substring(4, 4 + length * 2);
+            }
+          }
+          
+          return this.decodeOpReturnData(dataHex);
         }
       }
     }
     return null;
+  }
+
+  private decodeOpReturnData(hexData: string): OpReturnData {
+    const result: OpReturnData = {
+      hex: hexData,
+      decodingSuccess: false,
+    };
+
+    try {
+      // Попытка декодирования в UTF-8
+      const buffer = Buffer.from(hexData, 'hex');
+      const decoded = buffer.toString('utf8');
+      
+      // Проверяем, что декодированная строка содержит только печатаемые символы
+      const isPrintable = /^[\x20-\x7E\u00A0-\uFFFF]*$/.test(decoded);
+      
+      if (isPrintable && decoded.length > 0) {
+        result.decoded = decoded;
+        result.decodingSuccess = true;
+      }
+    } catch (error) {
+      // Декодирование не удалось, оставляем только HEX
+      console.debug('Failed to decode OP_RETURN data as UTF-8:', error);
+    }
+
+    return result;
   }
 
   calculatePerformanceMetrics(

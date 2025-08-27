@@ -5,22 +5,11 @@ export class BitcoinRPCClient {
   private client: AxiosInstance;
   private requestId = 0;
 
-  constructor(
-    private rpcUrl: string,
-    private username?: string,
-    private password?: string
-  ) {
+  constructor(private rpcUrl: string) {
     this.client = axios.create({
       baseURL: this.rpcUrl,
       timeout: 30000,
       headers: { "Content-Type": "application/json" },
-
-      auth: this.username
-        ? {
-            username: this.username,
-            password: this.password || "",
-          }
-        : undefined,
     });
   }
 
