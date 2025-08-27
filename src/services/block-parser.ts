@@ -78,13 +78,23 @@ export class BlockParser {
         addresses.push(...this.parseSegWitAddress(scriptPubKey.hex, scriptPubKey.type));
         break;
         
+      case 'witness_v1_taproot': // Taproot адреса (современный формат)
+        addresses.push(...this.parseTaprootAddress(scriptPubKey.hex));
+        break;
+        
+      case 'multisig': // Мультиподпись адреса
+        addresses.push(...this.parseMultisigAddress(scriptPubKey.hex));
+        break;
+        
       case 'nulldata': // OP_RETURN outputs - не содержат адресов
         // Игнорируем, но можем извлечь данные для анализа
         break;
         
       default:
-        // Неизвестный тип скрипта - логируем для отладки
-        console.debug(`Unknown script type: ${scriptPubKey.type}`);
+        // Неизвестный тип скрипта - логируем для отладки (уменьшено до warn)
+        if (scriptPubKey.type && !['nonstandard', 'raw'].includes(scriptPubKey.type)) {
+          console.warn(`Unknown script type: ${scriptPubKey.type}`);
+        }
     }
 
     return addresses;
@@ -136,6 +146,33 @@ export class BlockParser {
         const scriptHash = scriptHex.substring(4);
         return [`bc1q${scriptHash.substring(0, 20)}...`]; // Simplified placeholder
       }
+    }
+    return [];
+  }
+
+  /**
+   * Парсит Taproot адреса (witness_v1_taproot)
+   * Новейший формат Bitcoin адресов с улучшенной приватностью
+   */
+  private parseTaprootAddress(scriptHex: string): string[] {
+    // Taproot: 5120{32 bytes} (OP_1 + 32-byte key)
+    if (scriptHex.length === 68 && scriptHex.startsWith('5120')) {
+      const taprootKey = scriptHex.substring(4);
+      return [`bc1p${taprootKey.substring(0, 20)}...`]; // Simplified placeholder
+    }
+    return [];
+  }
+
+  /**
+   * Парсит мультиподпись адреса (multisig)
+   * Формат: OP_M pubkey1 pubkey2 ... pubkeyN OP_N OP_CHECKMULTISIG
+   */
+  private parseMultisigAddress(scriptHex: string): string[] {
+    // Multisig скрипты не имеют прямых адресов, но содержат публичные ключи
+    // В рамках демо возвращаем placeholder для мультиподписи
+    if (scriptHex.length > 10) {
+      const firstBytes = scriptHex.substring(0, 10);
+      return [`multisig_${firstBytes}...`]; // Simplified placeholder
     }
     return [];
   }

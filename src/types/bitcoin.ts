@@ -7,7 +7,7 @@ export interface BitcoinAddress {
 }
 
 export interface WatchedAddresses {
-  [address: string]: string; // address -> name
+  [address: string]: string;
 }
 
 export interface Config {
@@ -65,7 +65,7 @@ export interface RawBlock {
   tx: Transaction[]; // Array of transaction objects
 }
 
-// Bitcoin transaction structures  
+// Bitcoin transaction structures
 export interface Transaction {
   txid: string;
   hash: string;
@@ -108,7 +108,7 @@ export interface TransactionNotification {
   blockHeight: number;
   blockHash: string;
   txHash: string;
-  type: 'incoming' | 'outgoing' | 'both';
+  type: 'incoming' | 'outgoing' | 'both' | 'none';
   addresses: AddressInvolvement[];
   totalBTC: number;
   totalUSD?: number;
