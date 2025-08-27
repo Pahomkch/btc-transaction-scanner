@@ -8,9 +8,16 @@
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "test": "jest",
-    "lint": "eslint src/**/*.ts"
     "lint": "eslint src/**/*.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "all-application-tests": "========================",
+    "test:all": "npm run test && npm run test:performance",
+    "single-application-test": "========================",
+    "test:performance": "node tests/performance/run-all-tests.js",
+    "test:memory": "node tests/performance/memory-limit-test.js",
+    "test:latency": "node tests/performance/latency-test.js",
+    "test:throughput": "node tests/performance/throughput-test.js",
+    "test:scale": "node tests/performance/address-scale-test.js"
   },
   "keywords": ["bitcoin", "blockchain", "transaction", "scanner", "monitoring"],
   "author": "BTC Scanner Bot",

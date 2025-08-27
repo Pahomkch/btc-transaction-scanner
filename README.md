@@ -1,84 +1,131 @@
 # Bitcoin Transaction Scanner
 
-A high-performance TypeScript bot that monitors Bitcoin network transactions for configured addresses and reports findings via structured JSON logs to stdout.
+A high-performance TypeScript application that monitors Bitcoin network transactions for configured addresses and reports findings via structured JSON logs. Built for production use with comprehensive performance validation and monitoring capabilities.
 
-## 🎯 Features
+## 🎯 Overview
 
-- **Real-time Monitoring**: Tracks new Bitcoin blocks with ~5 second latency
-- **Memory Efficient**: Streaming block processing to stay under 512MB RAM limit
-- **High Performance**: Supports monitoring 1000+ addresses with O(1) lookup efficiency
-- **Multi-format Support**: Handles Legacy (P2PKH), P2SH, and SegWit (Bech32) addresses
-- **Custom Script Interpretation**: Parses different transaction types including OP_RETURN data
-- **USD Conversion**: Optional real-time BTC to USD conversion
-- **JSON Logging**: Structured transaction notifications to stdout
-- **Performance Metrics**: Built-in monitoring of latency, memory usage, and throughput
+Bitcoin Transaction Scanner is designed to provide real-time monitoring of Bitcoin addresses with enterprise-grade performance requirements. It connects directly to Bitcoin RPC nodes, processes raw blockchain data, and delivers instant notifications when watched addresses are involved in transactions.
 
-## 🏗 Architecture
-
-```
-├── src/
-│   ├── types/bitcoin.ts          # TypeScript interfaces and types
-│   ├── services/
-│   │   ├── rpc-client.ts         # Bitcoin RPC client with retry logic
-│   │   ├── block-parser.ts       # Streaming block parser
-│   │   ├── address-detector.ts   # O(1) address lookup service
-│   │   ├── notification-service.ts # JSON notification system
-│   │   └── block-monitor.ts      # Main monitoring orchestrator
-│   ├── config/config.json        # Configuration file
-│   └── index.ts                  # Application entry point
-```
-
-## 📋 Technical Requirements Compliance
-
-| Requirement | Implementation | Status |
-|-------------|---------------|---------|
-| Max 512MB RAM | Streaming block processing, no caching | ✅ |
-| ≤5s latency | Real-time block polling every 5 seconds | ✅ |
-| 1000+ addresses | Set-based O(1) address lookup | ✅ |
-| 7 TPS throughput | Async processing, parallel address checks | ✅ |
-| Direct RPC only | No blockchain explorer APIs used | ✅ |
-| JSON stdout logs | Winston structured logging | ✅ |
-| Raw block parsing | Custom Bitcoin block/transaction parser | ✅ |
-| Script interpretation | Support for P2PKH, P2SH, SegWit, OP_RETURN | ✅ |
+### Key Capabilities
+- **Real-time Monitoring**: Continuous scanning of new Bitcoin blocks
+- **Multi-Address Support**: Monitor 1000+ addresses simultaneously
+- **All Address Types**: Support for Legacy P2PKH, P2SH, SegWit, and Taproot addresses
+- **Transaction Analysis**: Detailed transaction breakdown with direction detection
+- **Performance Optimized**: Memory-efficient with sub-5-second latency guarantees
+- **USD Integration**: Optional real-time BTC to USD conversion
+- **OP_RETURN Support**: Extraction and decoding of embedded data
+- **Production Ready**: Comprehensive testing suite and monitoring
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-
-- Node.js 18+
-- TypeScript 5.3+
-- Access to Bitcoin RPC node (QuickNode, Infura, Alchemy free tier)
+- Node.js >= 18.0.0
+- Bitcoin RPC endpoint (QuickNode, local node, etc.)
+- npm or yarn package manager
 
 ### Installation
 
 ```bash
-# Clone and install dependencies
+# Clone the repository
 git clone <repository-url>
-cd bitcoin-transaction-scanner
+cd btc_scanner
+
+# Install dependencies
 npm install
 
 # Build the project
 npm run build
+
+# Configure your settings (see Configuration section)
+# Edit src/config/config.json with your RPC URL and addresses
+
+# Start monitoring
+npm start
+```
+## 🧪 Testing
+
+### Running Tests
+
+**Important**: Performance tests require the project to be built first:
+
+```bash
+# Build the project before running performance tests
+npm run build
+
+# Run complete test suite
+npm run test:all
 ```
 
-### Configuration
+### Test Categories
 
-1. **Config File Method** (Recommended):
-   Edit `src/config/config.json`:
+```bash
+# Unit and Integration Tests
+npm test
+
+# Performance Tests (requires build)
+npm run test:performance   # All performance tests
+npm run test:memory        # Memory limit validation (512MB)
+npm run test:latency       # Notification latency (≤5s)
+npm run test:scale         # Address scale test (1000+ addresses)
+npm run test:throughput    # Throughput validation (7+ TPS)
+
+# Individual Components
+npm run typecheck          # TypeScript validation
+npm run lint              # Code style checks
+```
+
+### Test Results
+
+Test results are saved in `tests/results/` directory:
+- `test-suite-summary.json`: Overall test summary
+- `memory-test-results.json`: Memory usage analysis
+- `latency-test-results.json`: Response time metrics
+- `throughput-test-results.json`: Transaction processing rates
+- `address-scale-test-results.json`: Large-scale address handling
+
+## 📊 Features
+
+### Address Type Detection
+| Type | Format | Description |
+|------|--------|-------------|
+| **Legacy P2PKH** | `1...` | Pay-to-Public-Key-Hash (original Bitcoin addresses) |
+| **Legacy P2SH** | `3...` | Pay-to-Script-Hash (multisig, timelock) |
+| **SegWit Bech32** | `bc1q...` | Native SegWit v0 (lower fees, witness data) |
+| **Taproot P2TR** | `bc1p...` | Pay-to-Taproot (privacy, smart contracts) |
+
+### Transaction Analysis
+- **Incoming**: Address receives Bitcoin from external sources
+- **Outgoing**: Address sends Bitcoin to external destinations
+- **Both**: Address appears in inputs and outputs (internal transfers)
+- **Balance Tracking**: Net balance changes for complex transactions
+- **OP_RETURN**: Extraction of embedded data with UTF-8 decoding
+
+### Performance Features
+- **Memory Efficient**: Streaming block processing prevents memory bloat
+- **Fast Lookups**: O(1) address matching using Set data structures
+- **Auto-Recovery**: RPC retry logic with exponential backoff
+- **Garbage Collection**: Proactive memory management and monitoring
+- **Rate Limiting**: Intelligent request throttling for RPC endpoints
+
+## ⚙️ Configuration
+
+### Configuration File
+
+Edit `src/config/config.json`:
 
 ```json
 {
-  "rpcUrl": "https://your-quicknode-endpoint.com",
+  "rpcUrl": "https://your-quicknode-endpoint.com/api-key",
   "addresses": [
     {
       "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
       "name": "Genesis Block Address",
-      "type": "legacy"
+      "note": "First Bitcoin address ever used"
     },
     {
       "address": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
-      "name": "SegWit Address",
-      "type": "bech32"
+      "name": "Modern SegWit Address",
+      "note": "Example native SegWit address"
     }
   ],
   "pollingIntervalMs": 5000,
@@ -88,183 +135,57 @@ npm run build
 }
 ```
 
-2. **Environment Variables Method**:
+### Environment Variables
+
+Optional environment variable overrides:
 
 ```bash
-export BTC_RPC_URL="https://your-rpc-endpoint.com"
-export WATCHED_ADDRESSES='[{"address":"1A1z...","name":"Test","type":"legacy"}]'
-export USD_PRICE_ENABLED=true
-export MAX_MEMORY_MB=512
-export POLLING_INTERVAL_MS=5000
+# RPC Configuration
+BTC_RPC_URL="https://your-node.com/api"
+
+# Performance Tuning
+MAX_MEMORY_MB=512
+POLLING_INTERVAL_MS=5000
+
+# Features
+USD_PRICE_ENABLED=true
+LOG_LEVEL=info
+
+# Custom Config Path
+CONFIG_PATH=/path/to/custom/config.json
 ```
 
-### Running
+### Output Format
 
-```bash
-# Development mode
-npm run dev
-
-# Production mode
-npm run build
-npm start
-
-# With custom config
-CONFIG_PATH=/path/to/config.json npm start
-```
-
-## 📊 Output Format
-
-The scanner outputs structured JSON logs to stdout for each detected transaction:
+Transaction notifications are logged as structured JSON:
 
 ```json
 {
+  "event_type": "bitcoin_transaction",
+  "timestamp": 1756314559281,
   "level": "info",
   "message": "transaction_detected",
-  "timestamp": "2024-01-20T15:30:45.123Z",
-  "event_type": "bitcoin_transaction",
   "block": {
-    "height": 825000,
-    "hash": "0000000000000000000123abc..."
+    "height": 911963,
+    "hash": "0000000000000000000200a39193d6c453b7e2c9a82172f4a501f97a23fdd5c5"
   },
   "transaction": {
-    "hash": "abc123def456...",
+    "hash": "4c70a848552291cbd64278f9b293a6bcf5f8ef9761fb3e8a18c9d4fc7375a43f",
     "type": "incoming",
-    "total_btc": 0.001,
-    "total_usd": 42.50,
-    "balance_difference": 0.001
+    "total_btc": 0.00055364,
+    "total_usd": 62.03
   },
   "addresses": [
     {
-      "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-      "name": "Genesis Block Address",
+      "address": "35C2L1pCgwzBHNcDcVL1a5RuoefeWqyjAR",
+      "name": "P2SH Incoming Address",
       "direction": "output",
-      "amount_btc": 0.001,
-      "amount_usd": 42.50
+      "amount_btc": 0.00055364,
+      "amount_usd": 62.03
     }
   ],
-  "op_return_data": "48656c6c6f20576f726c64",
-  "processing_info": {
-    "notification_time": 1705756245123,
-    "latency_ms": 3500
-  }
+  "sender_addresses": ["33YGi6YFaubneh1BfG4KvcTWBH6a66KAmW"],
+  "receiver_addresses": ["35C2L1pCgwzBHNcDcVL1a5RuoefeWqyjAR"],
+  "readable_message": "Address P2SH Incoming Address receives 0.00055364 BTC ($62.03) from 33YGi6YFaubneh1BfG4KvcTWBH6a66KAmW | Legacy P2SH | TX: 4c70a848552291cbd64278f9b293a6bcf5f8ef9761fb3e8a18c9d4fc7375a43f"
 }
 ```
-
-### Transaction Types
-
-- **incoming**: Funds received by watched addresses
-- **outgoing**: Funds sent from watched addresses  
-- **both**: Mixed transaction (watched addresses in both inputs and outputs)
-
-## 🔧 Address Format Support
-
-| Format | Example | Type Field | Description |
-|--------|---------|------------|-------------|
-| Legacy P2PKH | `1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa` | `legacy` | Traditional Bitcoin addresses |
-| P2SH | `3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy` | `segwit` | Script hash addresses |
-| Bech32 | `bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh` | `bech32` | Native SegWit addresses |
-
-## 🔍 Performance Monitoring
-
-The scanner provides built-in performance metrics:
-
-```json
-{
-  "level": "info",
-  "message": "performance_metrics",
-  "timestamp": "2024-01-20T15:30:45.123Z",
-  "event_type": "performance_data",
-  "metrics": {
-    "memory_usage_mb": 256.7,
-    "block_processing_time_ms": 1250,
-    "transaction_count": 2847,
-    "addresses_matched": 3,
-    "notification_latency_ms": 3200
-  }
-}
-```
-
-## 🧪 Testing
-
-### Unit Tests
-```bash
-npm test
-```
-
-### Performance Testing
-
-The scanner includes built-in performance monitoring. To verify compliance:
-
-1. **Memory Usage**: Monitor `memory_usage_mb` in performance logs (should stay under 512MB)
-2. **Latency**: Check `notification_latency_ms` (should be ≤5000ms)
-3. **Throughput**: Verify processing of sustained 7+ TPS during busy periods
-
-### Load Testing
-
-```bash
-# Monitor 1000 addresses for 1 hour
-node dist/index.js | tee performance.log
-
-# Analyze performance metrics
-grep "performance_metrics" performance.log | jq '.metrics'
-```
-
-## 🚨 Error Handling
-
-The scanner includes comprehensive error handling:
-
-- **RPC Connection**: Automatic retry with exponential backoff
-- **Memory Limits**: Monitoring and garbage collection triggers
-- **Network Issues**: Graceful degradation and recovery
-- **Invalid Blocks**: Logging and continuation of monitoring
-
-## 🔒 Security Considerations
-
-- RPC credentials are loaded from config files or environment variables
-- No sensitive data is logged in output
-- Input validation for all configuration parameters
-- Graceful handling of malformed blockchain data
-
-## 🛠 Development
-
-### Project Structure
-
-- **Types**: All Bitcoin-related interfaces in `types/bitcoin.ts`
-- **Services**: Modular services with single responsibilities
-- **Async/Await**: Extensively used with detailed comments explaining concurrency
-- **Memory Management**: Streaming processing with explicit garbage collection
-- **Error Handling**: Comprehensive try-catch blocks with structured logging
-
-### Key Design Decisions
-
-1. **TypeScript**: Chosen for strong typing and excellent async support
-2. **Streaming**: Prevents memory accumulation when processing large blocks
-3. **Set-based Lookup**: O(1) address detection for 1000+ addresses
-4. **Retry Logic**: Handles free-tier RPC provider limitations
-5. **JSON Logging**: Structured output for easy integration with monitoring tools
-
-## 📈 Scalability
-
-The scanner is designed to handle:
-- **1000+ addresses**: O(1) lookup performance
-- **Large blocks**: Streaming processing up to 4MB blocks
-- **High throughput**: 7+ TPS sustained processing
-- **Limited memory**: Operates within 512MB constraint
-- **Network variance**: Adapts to RPC provider limitations
-
-## 🤝 Contributing
-
-1. Follow the existing TypeScript style
-2. Add comprehensive async/await comments
-3. Include performance impact analysis for changes
-4. Test memory usage with large address sets
-5. Verify JSON output format compliance
-
-## 📄 License
-
-MIT License - see LICENSE file for details.
-
----
-
-**🔍 Bitcoin Transaction Scanner v1.0.0**  
-*Real-time Bitcoin address monitoring with enterprise-grade performance*

@@ -12,7 +12,7 @@ const path = require('path');
 class LatencyTest {
   constructor() {
     this.maxLatencyMs = 5000; // 5 секунд
-    this.testDuration = 120000; // 2 минуты тестирования  
+    this.testDuration = 120000; // 2 минуты тестирования
     this.latencyMeasurements = [];
     this.blockDiscoveries = [];
   }
@@ -41,7 +41,7 @@ class LatencyTest {
   createTestConfig() {
     // Конфиг с активными адресами для тестирования латентности
     return {
-      rpcUrl: process.env.BTC_RPC_URL || 'https://neat-tame-pond.btc.quiknode.pro/91ba64a3b7d2ced2d16fff2eb260106323aba0c0',
+      rpcUrl: process.env.BTC_RPC_URL,
       addresses: [
         {
           address: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
@@ -49,7 +49,7 @@ class LatencyTest {
         },
         {
           address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-          name: 'SegWit Test Address'  
+          name: 'SegWit Test Address'
         },
         {
           address: '3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy',
@@ -75,10 +75,10 @@ class LatencyTest {
   async startLatencyTest(configPath) {
     return new Promise((resolve, reject) => {
       console.log('🚀 Starting Bitcoin Transaction Scanner for latency test...');
-      
+
       const scannerProcess = spawn('node', ['dist/index.js'], {
-        env: { 
-          ...process.env, 
+        env: {
+          ...process.env,
           NODE_OPTIONS: '--max-old-space-size=600'
         },
         stdio: ['inherit', 'pipe', 'pipe'],
@@ -91,7 +91,7 @@ class LatencyTest {
       // Парсинг JSON логов для измерения латентности
       scannerProcess.stdout.on('data', (data) => {
         const lines = data.toString().split('\n');
-        
+
         lines.forEach(line => {
           line = line.trim();
           if (!line) return;
@@ -103,7 +103,7 @@ class LatencyTest {
           } catch (error) {
             // Обычный текстовый вывод
             console.log('Scanner:', line);
-            
+
             // Детектим обнаружение новых блоков
             const newBlockMatch = line.match(/New blocks detected: (\d+)/);
             if (newBlockMatch) {
@@ -139,7 +139,7 @@ class LatencyTest {
       setTimeout(() => {
         console.log('⏰ Test duration reached, stopping scanner...');
         scannerProcess.kill('SIGTERM');
-        
+
         setTimeout(() => {
           if (scannerProcess.pid) {
             scannerProcess.kill('SIGKILL');
@@ -162,7 +162,7 @@ class LatencyTest {
   processTransactionEvent(logData) {
     const notificationTime = logData.timestamp;
     const processingLatency = logData.processing_info?.latency_ms;
-    
+
     if (processingLatency !== undefined) {
       this.latencyMeasurements.push({
         txHash: logData.transaction?.hash,
@@ -183,7 +183,7 @@ class LatencyTest {
 
   processPerformanceEvent(logData) {
     const notificationLatency = logData.metrics?.notification_latency_ms;
-    
+
     if (notificationLatency !== undefined) {
       console.log(`📈 Notification latency: ${notificationLatency}ms`);
     }
@@ -198,15 +198,15 @@ class LatencyTest {
       console.log('⚪ No latency measurements collected');
       console.log('This is expected for addresses with low transaction activity.');
       console.log('System ran successfully without latency violations.');
-      
+
       // Save results as passed since no violations occurred
       const resultsPath = path.join(__dirname, '../results/latency-test-results.json');
       const resultsDir = path.dirname(resultsPath);
-      
+
       if (!fs.existsSync(resultsDir)) {
         fs.mkdirSync(resultsDir, { recursive: true });
       }
-      
+
       fs.writeFileSync(resultsPath, JSON.stringify({
         testType: 'latency',
         timestamp: new Date().toISOString(),
@@ -223,7 +223,7 @@ class LatencyTest {
         measurements: [],
         blockDiscoveries: this.blockDiscoveries
       }, null, 2));
-      
+
       console.log(`📄 Results saved to: ${resultsPath}`);
       return;
     }
@@ -233,7 +233,7 @@ class LatencyTest {
     const maxLatency = Math.max(...latencies);
     const minLatency = Math.min(...latencies);
     const violations = latencies.filter(lat => lat > this.maxLatencyMs);
-    
+
     // Перцентили
     const sortedLatencies = [...latencies].sort((a, b) => a - b);
     const p50 = sortedLatencies[Math.floor(sortedLatencies.length * 0.5)];
@@ -295,11 +295,11 @@ class LatencyTest {
     // Сохраняем детальные результаты
     const resultsPath = path.join(__dirname, '../results/latency-test-results.json');
     const resultsDir = path.dirname(resultsPath);
-    
+
     if (!fs.existsSync(resultsDir)) {
       fs.mkdirSync(resultsDir, { recursive: true });
     }
-    
+
     fs.writeFileSync(resultsPath, JSON.stringify({
       testType: 'latency',
       timestamp: new Date().toISOString(),
@@ -311,7 +311,7 @@ class LatencyTest {
       results: {
         measurementCount: this.latencyMeasurements.length,
         avgLatencyMs: avgLatency,
-        minLatencyMs: minLatency,  
+        minLatencyMs: minLatency,
         maxLatencyMs: maxLatency,
         p50Ms: p50,
         p95Ms: p95,
@@ -328,7 +328,7 @@ class LatencyTest {
       measurements: this.latencyMeasurements,
       blockDiscoveries: this.blockDiscoveries
     }, null, 2));
-    
+
     console.log(`📄 Detailed results saved to: ${resultsPath}`);
   }
 }

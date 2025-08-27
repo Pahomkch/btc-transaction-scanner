@@ -24,12 +24,8 @@ class ThroughputTest {
     console.log(`⏱️ Duration: ${this.testDuration / 1000} seconds`);
     console.log('');
 
-    const testConfig = this.createTestConfig();
-    const configPath = path.join(__dirname, 'test-config-throughput.json');
-    fs.writeFileSync(configPath, JSON.stringify(testConfig, null, 2));
-
     try {
-      await this.startThroughputTest(configPath);
+      await this.startThroughputTest();
       this.analyzeResults();
     } finally {
       // Cleanup
@@ -42,11 +38,11 @@ class ThroughputTest {
   createTestConfig() {
     // Конфигурация для максимального покрытия транзакций
     const addresses = [];
-    
+
     // Известные активные адреса для максимального покрытия транзакций
     const highActivityAddresses = [
       '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', // Genesis
-      '12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX', // Silk Road 
+      '12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX', // Silk Road
       '1FeexV6bAHb8ybZjqQMjJrcCrHGW9sb6uF', // BitFinex
       '34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo', // Binance
       'bc1qjh0akslml59uuczddqu0y4xh3pj5z7dl4hf2v8', // Large SegWit
@@ -73,7 +69,7 @@ class ThroughputTest {
     }
 
     return {
-      rpcUrl: process.env.BTC_RPC_URL || 'https://neat-tame-pond.btc.quiknode.pro/91ba64a3b7d2ced2d16fff2eb260106323aba0c0',
+      rpcUrl: process.env.BTC_RPC_URL,
       addresses: addresses,
       pollingIntervalMs: 2000, // Частые обновления для лучшего покрытия
       maxMemoryMB: 512,
@@ -85,7 +81,7 @@ class ThroughputTest {
   generateTestAddress(index) {
     const types = ['1', '3', 'bc1q'];
     const type = types[index % types.length];
-    
+
     if (type === '1') {
       return '1' + this.randomString(25, '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz');
     } else if (type === '3') {
@@ -103,13 +99,13 @@ class ThroughputTest {
     return result;
   }
 
-  async startThroughputTest(configPath) {
+  async startThroughputTest() {
     return new Promise((resolve, reject) => {
       console.log('🚀 Starting Bitcoin Transaction Scanner for throughput test...');
-      
+
       const scannerProcess = spawn('node', ['dist/index.js'], {
-        env: { 
-          ...process.env, 
+        env: {
+          ...process.env,
           NODE_OPTIONS: '--max-old-space-size=600'
         },
         stdio: ['inherit', 'pipe', 'pipe'],
@@ -129,7 +125,7 @@ class ThroughputTest {
             lastWindowStart = now;
             windowTransactionCount = 0;
           }
-          
+
           const windowDuration = (now - lastWindowStart) / 1000;
           if (windowDuration >= 1.0) {
             const currentTPS = windowTransactionCount / windowDuration;
@@ -139,9 +135,9 @@ class ThroughputTest {
               transactionCount: windowTransactionCount,
               windowDuration
             });
-            
+
             console.log(`📊 Current TPS: ${currentTPS.toFixed(2)} (${windowTransactionCount} tx in ${windowDuration.toFixed(1)}s)`);
-            
+
             // Сброс окна
             lastWindowStart = now;
             windowTransactionCount = 0;
@@ -151,7 +147,7 @@ class ThroughputTest {
 
       scannerProcess.stdout.on('data', (data) => {
         const lines = data.toString().split('\n');
-        
+
         lines.forEach(line => {
           line = line.trim();
           if (!line) return;
@@ -159,11 +155,11 @@ class ThroughputTest {
           try {
             // Парсинг JSON логов
             const logData = JSON.parse(line);
-            
+
             if (logData.event_type === 'bitcoin_transaction') {
               transactionCount++;
               windowTransactionCount++;
-              
+
               if (!this.startTime) {
                 this.startTime = Date.now();
                 console.log('⏱️ Started measuring throughput...');
@@ -171,18 +167,18 @@ class ThroughputTest {
 
               console.log(`🔍 Transaction ${transactionCount}: ${logData.transaction?.hash} (Block ${logData.block?.height})`);
             }
-            
+
             if (logData.event_type === 'performance_data') {
               const blockTxCount = logData.metrics?.transaction_count;
               if (blockTxCount) {
                 console.log(`📈 Block processed: ${blockTxCount} transactions, ${logData.metrics.addresses_matched} matched`);
               }
             }
-            
+
           } catch (error) {
             // Текстовые логи
             console.log('Scanner:', line);
-            
+
             if (line.includes('Bitcoin Transaction Scanner is running') && !isStarted) {
               isStarted = true;
               console.log('✅ Scanner started, monitoring throughput...');
@@ -197,18 +193,18 @@ class ThroughputTest {
 
       scannerProcess.on('close', (code) => {
         clearInterval(tpsInterval);
-        
+
         if (this.startTime) {
           const totalDuration = (Date.now() - this.startTime) / 1000;
           const overallTPS = transactionCount / totalDuration;
-          
+
           this.transactionCounts.push({
             total: transactionCount,
             duration: totalDuration,
             averageTPS: overallTPS
           });
         }
-        
+
         if (code === 0 || transactionCount > 0) {
           resolve();
         } else {
@@ -221,7 +217,7 @@ class ThroughputTest {
         console.log('⏰ Test duration reached, stopping scanner...');
         clearInterval(tpsInterval);
         scannerProcess.kill('SIGTERM');
-        
+
         setTimeout(() => {
           if (scannerProcess.pid) {
             scannerProcess.kill('SIGKILL');
@@ -241,15 +237,15 @@ class ThroughputTest {
       console.log('⚪ No throughput data collected');
       console.log('This is expected for addresses with low transaction activity.');
       console.log('System ran successfully and is ready to handle transactions.');
-      
+
       // Save results as passed since system ran correctly
       const resultsPath = path.join(__dirname, '../results/throughput-test-results.json');
       const resultsDir = path.dirname(resultsPath);
-      
+
       if (!fs.existsSync(resultsDir)) {
         fs.mkdirSync(resultsDir, { recursive: true });
       }
-      
+
       fs.writeFileSync(resultsPath, JSON.stringify({
         testType: 'throughput',
         timestamp: new Date().toISOString(),
@@ -266,7 +262,7 @@ class ThroughputTest {
         performanceWindows: [],
         transactionCounts: []
       }, null, 2));
-      
+
       console.log(`📄 Results saved to: ${resultsPath}`);
       return;
     }
@@ -285,7 +281,7 @@ class ThroughputTest {
       const avgTPS = tpsValues.reduce((sum, tps) => sum + tps, 0) / tpsValues.length;
       const maxTPS = Math.max(...tpsValues);
       const minTPS = Math.min(...tpsValues);
-      
+
       // Окна с достаточной пропускной способностью
       const sustainedWindows = this.performanceWindows.filter(w => w.tps >= this.targetTPS);
       const sustainedPercentage = (sustainedWindows.length / this.performanceWindows.length) * 100;
@@ -317,7 +313,7 @@ class ThroughputTest {
       const tpsValues = this.performanceWindows.map(w => w.tps);
       const sustainedWindows = this.performanceWindows.filter(w => w.tps >= this.targetTPS);
       const sustainedPercentage = sustainedWindows.length / this.performanceWindows.length;
-      
+
       passed = sustainedPercentage >= sustainedThreshold;
       passReason = `${(sustainedPercentage * 100).toFixed(1)}% of time sustained ${this.targetTPS} TPS`;
     } else if (this.transactionCounts.length > 0) {
@@ -332,7 +328,7 @@ class ThroughputTest {
       console.log('✅ THROUGHPUT TEST PASSED');
       console.log(passReason);
     } else {
-      console.log('❌ THROUGHPUT TEST FAILED');  
+      console.log('❌ THROUGHPUT TEST FAILED');
       console.log(passReason);
       console.log('💡 Consider:');
       console.log('   - Using more active Bitcoin addresses');
@@ -343,11 +339,11 @@ class ThroughputTest {
     // Сохраняем детальные результаты
     const resultsPath = path.join(__dirname, '../results/throughput-test-results.json');
     const resultsDir = path.dirname(resultsPath);
-    
+
     if (!fs.existsSync(resultsDir)) {
       fs.mkdirSync(resultsDir, { recursive: true });
     }
-    
+
     const results = {
       testType: 'throughput',
       timestamp: new Date().toISOString(),
@@ -368,7 +364,7 @@ class ThroughputTest {
     if (this.performanceWindows.length > 0) {
       const tpsValues = this.performanceWindows.map(w => w.tps);
       const sustainedWindows = this.performanceWindows.filter(w => w.tps >= this.targetTPS);
-      
+
       results.results = {
         ...results.results,
         windowCount: this.performanceWindows.length,
@@ -379,7 +375,7 @@ class ThroughputTest {
         sustainedPercentage: (sustainedWindows.length / this.performanceWindows.length) * 100
       };
     }
-    
+
     fs.writeFileSync(resultsPath, JSON.stringify(results, null, 2));
     console.log(`📄 Detailed results saved to: ${resultsPath}`);
   }

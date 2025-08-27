@@ -40,9 +40,9 @@ class AddressScaleTest {
 
   createTestConfig() {
     console.log(`📝 Generating ${this.targetAddressCount + 200} test addresses...`);
-    
+
     const addresses = [];
-    
+
     // Реальные адреса для базовой функциональности
     const realAddresses = [
       { address: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', name: 'Genesis Block' },
@@ -68,7 +68,7 @@ class AddressScaleTest {
         address: this.generateValidAddress(addressType, i),
         name: `${addressType} Test Address #${i}`
       });
-      
+
       // Прогресс для больших наборов
       if (i % 250 === 0) {
         console.log(`Generated ${i}/${totalTarget} addresses...`);
@@ -78,7 +78,7 @@ class AddressScaleTest {
     console.log(`✅ Generated ${addresses.length} addresses (${this.getAddressTypeStats(addresses)})`);
 
     return {
-      rpcUrl: process.env.BTC_RPC_URL || 'https://neat-tame-pond.btc.quiknode.pro/91ba64a3b7d2ced2d16fff2eb260106323aba0c0',
+      rpcUrl: process.env.BTC_RPC_URL,
       addresses: addresses,
       pollingIntervalMs: 5000, // Чуть реже для большого количества адресов
       maxMemoryMB: 512,
@@ -96,7 +96,7 @@ class AddressScaleTest {
   generateValidAddress(type, seed) {
     // Используем seed для детерминированной генерации
     const rng = this.seededRandom(seed);
-    
+
     switch (type) {
       case 'Legacy P2PKH':
         return '1' + this.randomBase58String(25, rng);
@@ -143,23 +143,23 @@ class AddressScaleTest {
     addresses.forEach(addr => {
       let type = 'Unknown';
       if (addr.address.startsWith('1')) type = 'Legacy P2PKH';
-      else if (addr.address.startsWith('3')) type = 'Legacy P2SH';  
+      else if (addr.address.startsWith('3')) type = 'Legacy P2SH';
       else if (addr.address.startsWith('bc1q')) type = 'SegWit Bech32';
       else if (addr.address.startsWith('bc1p')) type = 'Taproot P2TR';
-      
+
       stats[type] = (stats[type] || 0) + 1;
     });
-    
+
     return Object.entries(stats).map(([type, count]) => `${count} ${type}`).join(', ');
   }
 
   async startScaleTest(configPath) {
     return new Promise((resolve, reject) => {
       console.log('🚀 Starting Bitcoin Transaction Scanner with large address set...');
-      
+
       const scannerProcess = spawn('node', ['dist/index.js'], {
-        env: { 
-          ...process.env, 
+        env: {
+          ...process.env,
           NODE_OPTIONS: '--max-old-space-size=600 --expose-gc',
           CONFIG_PATH: configPath
         },
@@ -180,7 +180,7 @@ class AddressScaleTest {
 
       scannerProcess.stdout.on('data', (data) => {
         const lines = data.toString().split('\n');
-        
+
         lines.forEach(line => {
           line = line.trim();
           if (!line) return;
@@ -188,12 +188,12 @@ class AddressScaleTest {
           try {
             // Парсинг JSON логов
             const logData = JSON.parse(line);
-            
+
             if (logData.event_type === 'bitcoin_transaction') {
               transactionCount++;
               console.log(`🔍 Transaction ${transactionCount}: Block ${logData.block?.height}`);
             }
-            
+
             if (logData.event_type === 'performance_data') {
               this.performanceMetrics.push({
                 timestamp: Date.now(),
@@ -202,26 +202,26 @@ class AddressScaleTest {
                 transactionCount: logData.metrics.transaction_count,
                 addressesMatched: logData.metrics.addresses_matched
               });
-              
+
               console.log(`📊 Performance: ${logData.metrics.memory_usage_mb.toFixed(1)}MB, ${logData.metrics.transaction_count} tx processed`);
             }
-            
+
           } catch (error) {
             // Текстовые логи
             const output = line;
-            
+
             // Парсинг информации о количестве адресов
             const addressMatch = output.match(/(\d+) addresses/);
             if (addressMatch) {
               addressCount = parseInt(addressMatch[1]);
             }
-            
+
             // Детекция старта
             if (output.includes('Bitcoin Transaction Scanner is running') && !isStarted) {
               isStarted = true;
               console.log(`✅ Scanner started with ${addressCount} addresses, monitoring performance...`);
             }
-            
+
             console.log('Scanner:', output);
           }
         });
@@ -233,12 +233,12 @@ class AddressScaleTest {
 
       scannerProcess.on('close', (code) => {
         clearInterval(perfInterval);
-        
+
         // Финальная выборка производительности
         if (scannerProcess.pid) {
           this.samplePerformance(scannerProcess.pid);
         }
-        
+
         if (code === 0 || addressCount > 0) {
           resolve();
         } else {
@@ -251,7 +251,7 @@ class AddressScaleTest {
         console.log('⏰ Test duration reached, stopping scanner...');
         clearInterval(perfInterval);
         scannerProcess.kill('SIGTERM');
-        
+
         setTimeout(() => {
           if (scannerProcess.pid) {
             scannerProcess.kill('SIGKILL');
@@ -265,24 +265,24 @@ class AddressScaleTest {
   samplePerformance(pid) {
     try {
       const { execSync } = require('child_process');
-      
+
       // Получаем использование памяти процесса
       const memInfo = execSync(`ps -o rss= -p ${pid}`, { encoding: 'utf8' }).trim();
       const memoryKB = parseInt(memInfo);
       const memoryMB = memoryKB / 1024;
-      
+
       // Получаем использование CPU
       const cpuInfo = execSync(`ps -o %cpu= -p ${pid}`, { encoding: 'utf8' }).trim();
       const cpuPercent = parseFloat(cpuInfo);
-      
+
       this.memoryUsage.push({
         timestamp: Date.now(),
         memoryMB: memoryMB,
         cpuPercent: cpuPercent
       });
-      
+
       console.log(`📊 System metrics: ${memoryMB.toFixed(1)}MB memory, ${cpuPercent.toFixed(1)}% CPU`);
-      
+
     } catch (error) {
       console.warn('Failed to sample system performance:', error.message);
     }
@@ -299,13 +299,13 @@ class AddressScaleTest {
       const avgMemory = memoryValues.reduce((sum, mem) => sum + mem, 0) / memoryValues.length;
       const maxMemory = Math.max(...memoryValues);
       const minMemory = Math.min(...memoryValues);
-      
+
       console.log(`💾 Memory Usage:`);
       console.log(`  📊 Average: ${avgMemory.toFixed(2)}MB`);
       console.log(`  📈 Peak: ${maxMemory.toFixed(2)}MB`);
       console.log(`  📉 Minimum: ${minMemory.toFixed(2)}MB`);
       console.log(`  🎯 Limit: 512MB`);
-      
+
       const memoryViolations = memoryValues.filter(mem => mem > 512);
       console.log(`  ⚠️ Memory violations: ${memoryViolations.length}/${memoryValues.length} samples`);
     }
@@ -316,7 +316,7 @@ class AddressScaleTest {
       if (cpuValues.length > 0) {
         const avgCPU = cpuValues.reduce((sum, cpu) => sum + cpu, 0) / cpuValues.length;
         const maxCPU = Math.max(...cpuValues);
-        
+
         console.log('');
         console.log(`💻 CPU Usage:`);
         console.log(`  📊 Average: ${avgCPU.toFixed(1)}%`);
@@ -330,27 +330,27 @@ class AddressScaleTest {
       if (blockTimes.length > 0) {
         const avgBlockTime = blockTimes.reduce((sum, time) => sum + time, 0) / blockTimes.length;
         const maxBlockTime = Math.max(...blockTimes);
-        
+
         console.log('');
         console.log(`⚡ Block Processing Performance:`);
         console.log(`  📊 Average block processing: ${avgBlockTime.toFixed(2)}ms`);
         console.log(`  📈 Max block processing: ${maxBlockTime.toFixed(2)}ms`);
       }
-      
+
       const totalTransactions = this.performanceMetrics.reduce((sum, m) => sum + m.transactionCount, 0);
       const totalMatches = this.performanceMetrics.reduce((sum, m) => sum + m.addressesMatched, 0);
-      
+
       console.log(`  📊 Total transactions processed: ${totalTransactions}`);
       console.log(`  ✅ Total address matches: ${totalMatches}`);
     }
 
-    // Результат теста  
+    // Результат теста
     const memoryPassed = this.memoryUsage.length === 0 || Math.max(...this.memoryUsage.map(m => m.memoryMB)) <= 512;
     const addressCountPassed = true; // Scanner успешно запустился с 1000+ адресами
-    
+
     // Проверка стабильности работы
     const stabilityPassed = this.performanceMetrics.length > 0 || this.memoryUsage.length > 0;
-    
+
     const overallPassed = memoryPassed && addressCountPassed && stabilityPassed;
 
     console.log('');
@@ -370,11 +370,11 @@ class AddressScaleTest {
     // Сохраняем результаты
     const resultsPath = path.join(__dirname, '../results/address-scale-test-results.json');
     const resultsDir = path.dirname(resultsPath);
-    
+
     if (!fs.existsSync(resultsDir)) {
       fs.mkdirSync(resultsDir, { recursive: true });
     }
-    
+
     const results = {
       testType: 'address_scale',
       timestamp: new Date().toISOString(),
@@ -402,7 +402,7 @@ class AddressScaleTest {
         memoryViolations: memoryValues.filter(mem => mem > 512).length
       };
     }
-    
+
     fs.writeFileSync(resultsPath, JSON.stringify(results, null, 2));
     console.log(`📄 Detailed results saved to: ${resultsPath}`);
   }

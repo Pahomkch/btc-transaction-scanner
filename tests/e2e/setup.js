@@ -11,7 +11,7 @@ global.e2eUtils = {
   // Create temporary test config
   createTestConfig: (overrides = {}) => {
     const config = {
-      rpcUrl: process.env.BTC_RPC_URL || 'https://neat-tame-pond.btc.quiknode.pro/91ba64a3b7d2ced2d16fff2eb260106323aba0c0',
+      rpcUrl: process.env.BTC_RPC_URL,
       addresses: [
         {
           address: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
@@ -24,10 +24,10 @@ global.e2eUtils = {
       logLevel: 'info',
       ...overrides
     };
-    
+
     const configPath = path.join(__dirname, `test-config-${Date.now()}.json`);
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-    
+
     return configPath;
   },
 
@@ -35,7 +35,7 @@ global.e2eUtils = {
   cleanupTestConfigs: () => {
     const testDir = __dirname;
     const files = fs.readdirSync(testDir);
-    
+
     files.forEach(file => {
       if (file.startsWith('test-config-') && file.endsWith('.json')) {
         const filePath = path.join(testDir, file);
@@ -83,7 +83,7 @@ global.e2eUtils = {
 
       scannerProcess.stdout.on('data', (data) => {
         const output = data.toString();
-        
+
         patterns.forEach(pattern => {
           if (typeof pattern === 'string') {
             if (output.includes(pattern)) {
@@ -120,7 +120,7 @@ global.e2eUtils = {
       }
 
       scannerProcess.kill('SIGTERM');
-      
+
       const timeoutId = setTimeout(() => {
         if (scannerProcess.pid) {
           scannerProcess.kill('SIGKILL');

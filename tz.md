@@ -40,3 +40,7 @@ For transactions with both incoming and outgoing operations, display the total b
 ## Submission Requirements
 1. Source code with setup instructions
 2. Performance test results demonstrating compliance with technical requirements
+
+
+## All transaction types
+P2PKH, P2SH, P2SH-P2WPKH, P2WPKH

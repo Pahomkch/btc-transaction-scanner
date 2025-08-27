@@ -43,7 +43,7 @@ class MemoryLimitTest {
   createTestConfig() {
     // Генерируем 1000+ тестовых адресов для нагрузочного тестирования
     const addresses = [];
-    
+
     // Реальные известные адреса для тестирования
     const realAddresses = [
       '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', // Genesis
@@ -69,7 +69,7 @@ class MemoryLimitTest {
     }
 
     return {
-      rpcUrl: process.env.BTC_RPC_URL || 'https://neat-tame-pond.btc.quiknode.pro/91ba64a3b7d2ced2d16fff2eb260106323aba0c0',
+      rpcUrl: process.env.BTC_RPC_URL,
       addresses: addresses,
       pollingIntervalMs: 2000, // Более частые проверки для тестирования
       maxMemoryMB: this.maxMemoryMB,
@@ -82,12 +82,12 @@ class MemoryLimitTest {
     // Генерируем валидные Bitcoin адреса для тестирования
     const types = ['1', '3', 'bc1q'];
     const type = types[index % types.length];
-    
+
     if (type === '1') {
       // Legacy P2PKH
       return '1' + this.randomString(25, '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz');
     } else if (type === '3') {
-      // P2SH  
+      // P2SH
       return '3' + this.randomString(25, '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz');
     } else {
       // SegWit Bech32
@@ -106,11 +106,11 @@ class MemoryLimitTest {
   async startMemoryTest(configPath) {
     return new Promise((resolve, reject) => {
       console.log('🚀 Starting Bitcoin Transaction Scanner...');
-      
+
       // Запускаем scanner как дочерний процесс
       const scannerProcess = spawn('node', ['dist/index.js'], {
-        env: { 
-          ...process.env, 
+        env: {
+          ...process.env,
           NODE_OPTIONS: '--max-old-space-size=600 --expose-gc'
         },
         stdio: ['inherit', 'pipe', 'pipe'],
@@ -156,7 +156,7 @@ class MemoryLimitTest {
         console.log('⏰ Test duration reached, stopping scanner...');
         clearInterval(memoryInterval);
         scannerProcess.kill('SIGTERM');
-        
+
         setTimeout(() => {
           if (scannerProcess.pid) {
             scannerProcess.kill('SIGKILL');
@@ -170,12 +170,12 @@ class MemoryLimitTest {
   sampleMemoryUsage(pid) {
     try {
       const { execSync } = require('child_process');
-      
+
       // Получаем использование памяти процесса (RSS in KB)
       const memInfo = execSync(`ps -o rss= -p ${pid}`, { encoding: 'utf8' }).trim();
       const memoryKB = parseInt(memInfo);
       const memoryMB = memoryKB / 1024;
-      
+
       this.memorySamples.push({
         timestamp: Date.now(),
         memoryMB: memoryMB
@@ -207,13 +207,13 @@ class MemoryLimitTest {
 
     const avgMemory = this.memorySamples.reduce((sum, sample) => sum + sample.memoryMB, 0) / this.memorySamples.length;
     const violations = this.memorySamples.filter(sample => sample.memoryMB > this.maxMemoryMB);
-    
+
     console.log(`📊 Samples collected: ${this.memorySamples.length}`);
     console.log(`🎯 Memory limit: ${this.maxMemoryMB}MB`);
     console.log(`📈 Peak memory usage: ${this.peakMemory.toFixed(2)}MB`);
     console.log(`📊 Average memory usage: ${avgMemory.toFixed(2)}MB`);
     console.log(`⚠️ Violations: ${violations.length} (${(violations.length / this.memorySamples.length * 100).toFixed(1)}%)`);
-    
+
     // Детальная статистика
     if (violations.length > 0) {
       const maxViolation = Math.max(...violations.map(v => v.memoryMB));
@@ -223,7 +223,7 @@ class MemoryLimitTest {
     // Результат теста
     const passThreshold = 0.05; // Максимум 5% нарушений допустимо
     const violationRate = violations.length / this.memorySamples.length;
-    
+
     if (this.peakMemory <= this.maxMemoryMB && violationRate <= passThreshold) {
       console.log('');
       console.log('✅ MEMORY TEST PASSED');
@@ -242,11 +242,11 @@ class MemoryLimitTest {
     // Сохраняем детальные результаты
     const resultsPath = path.join(__dirname, '../results/memory-test-results.json');
     const resultsDir = path.dirname(resultsPath);
-    
+
     if (!fs.existsSync(resultsDir)) {
       fs.mkdirSync(resultsDir, { recursive: true });
     }
-    
+
     fs.writeFileSync(resultsPath, JSON.stringify({
       testType: 'memory_limit',
       timestamp: new Date().toISOString(),
@@ -265,7 +265,7 @@ class MemoryLimitTest {
       },
       samples: this.memorySamples
     }, null, 2));
-    
+
     console.log(`📄 Detailed results saved to: ${resultsPath}`);
   }
 }
