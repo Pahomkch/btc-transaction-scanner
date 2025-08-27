@@ -47,7 +47,7 @@ export class BlockMonitor {
       await this.rpcClient.ping();
       console.log("Connected to Bitcoin RPC node successfully");
       const blockchainInfo = await this.rpcClient.getBlockchainInfo();
-      this.lastProcessedBlock = blockchainInfo.blocks;
+      this.lastProcessedBlock = blockchainInfo.blocks - 1;
 
       console.log(`Starting monitor from block ${this.lastProcessedBlock}`);
 
