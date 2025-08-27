@@ -127,7 +127,6 @@ export class BlockMonitor {
       if (currentBlock > this.lastProcessedBlock) {
         console.log(`New blocks detected: ${currentBlock}`);
 
-        // Обрабатываем все пропущенные блоки последовательно для экономии RAM
         for (
           let blockHeight = this.lastProcessedBlock + 1;
           blockHeight <= currentBlock;
