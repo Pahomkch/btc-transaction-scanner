@@ -270,6 +270,8 @@ export class BlockMonitor {
       totalBTC,
       balanceDifference,
       opReturnData: opReturnData || undefined,
+      senderAddresses: detectionResult.allAddresses.senders,
+      receiverAddresses: detectionResult.allAddresses.receivers,
     };
   }
 

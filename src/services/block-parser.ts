@@ -34,10 +34,10 @@ export class BlockParser {
       outputs.push(...addresses);
     }
 
-    // TODO
-    // Для входов транзакции адреса находятся в предыдущих транзакциях
-    // можем получить их из scriptSig или witness данных
-    // Но для простоты сосредоточимся на выходах, где адреса более явные
+    for (const input of transaction.vin) {
+      const addresses = this.extractAddressesFromInput(input);
+      inputs.push(...addresses);
+    }
     return { inputs, outputs };
   }
 
@@ -60,6 +60,49 @@ export class BlockParser {
     return [];
   }
 
+  private extractAddressesFromInput(input: any): string[] {
+    const addresses: string[] = [];
+
+    if (input.addresses && Array.isArray(input.addresses)) {
+      addresses.push(
+        ...input.addresses.filter((addr: string) => addr && addr.length > 10)
+      );
+    }
+
+    // Проверяем witness data для SegWit транзакций
+    if (input.txinwitness && Array.isArray(input.txinwitness)) {
+      // Для SegWit v0 (P2WPKH) обычно последний элемент witness - это публичный ключ
+      const witness = input.txinwitness;
+      if (witness.length >= 2) {
+        try {
+          // Попытка извлечь адрес из публичного ключа в witness
+          const pubKey = witness[witness.length - 1];
+          if (pubKey && pubKey.length === 66) {
+            // 33 байта в hex = 66 символов
+            // console.log('Found public key in witness, but address conversion not implemented');
+          }
+        } catch (e) {
+          // Игнорируем ошибки при разборе witness
+        }
+      }
+    }
+
+    if (input.scriptSig && input.scriptSig.asm) {
+      try {
+        const asm = input.scriptSig.asm;
+        const pubKeyPattern = /[0-9a-fA-F]{66}/g;
+        const pubKeys = asm.match(pubKeyPattern);
+        if (pubKeys && pubKeys.length > 0) {
+          // TODO Found public keys in scriptSig, but address conversion not implemented
+        }
+      } catch (e) {
+        // Игнорируем ошибки при разборе scriptSig
+      }
+    }
+
+    return addresses;
+  }
+
   extractOpReturnData(transaction: Transaction): OpReturnData | null {
     for (const output of transaction.vout) {
       if (output.scriptPubKey.type === "nulldata") {
@@ -69,7 +112,7 @@ export class BlockParser {
           // Пропускаем OP_RETURN опкод (6a) и длину данных
           // Первый байт после 6a - это длина данных
           let dataHex = hex.substring(4); // Простое удаление первых 2 байтов
-          
+
           // Более правильный парсинг длины данных
           if (hex.length >= 6) {
             const lengthByte = hex.substring(2, 4);
@@ -78,7 +121,7 @@ export class BlockParser {
               dataHex = hex.substring(4, 4 + length * 2);
             }
           }
-          
+
           return this.decodeOpReturnData(dataHex);
         }
       }
@@ -94,19 +137,19 @@ export class BlockParser {
 
     try {
       // Попытка декодирования в UTF-8
-      const buffer = Buffer.from(hexData, 'hex');
-      const decoded = buffer.toString('utf8');
-      
+      const buffer = Buffer.from(hexData, "hex");
+      const decoded = buffer.toString("utf8");
+
       // Проверяем, что декодированная строка содержит только печатаемые символы
       const isPrintable = /^[\x20-\x7E\u00A0-\uFFFF]*$/.test(decoded);
-      
+
       if (isPrintable && decoded.length > 0) {
         result.decoded = decoded;
         result.decodingSuccess = true;
       }
     } catch (error) {
       // Декодирование не удалось, оставляем только HEX
-      console.debug('Failed to decode OP_RETURN data as UTF-8:', error);
+      console.debug("Failed to decode OP_RETURN data as UTF-8:", error);
     }
 
     return result;

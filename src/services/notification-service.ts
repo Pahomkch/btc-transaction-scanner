@@ -33,7 +33,10 @@ export class NotificationService {
         await this.enrichWithUSDAmounts(notification);
       }
 
+      const readableMessage = this.createReadableMessage(notification);
+
       this.logger.info("transaction_detected", {
+        comment: readableMessage,
         event_type: "bitcoin_transaction",
         timestamp: notification.timestamp,
         block: {
@@ -54,11 +57,14 @@ export class NotificationService {
           amount_btc: addr.amount,
           amount_usd: addr.amountUSD,
         })),
+        sender_addresses: notification.senderAddresses,
+        receiver_addresses: notification.receiverAddresses,
         op_return_data: notification.opReturnData,
         processing_info: {
           notification_time: Date.now(),
           latency_ms: Date.now() - notification.timestamp,
         },
+        readable_message: readableMessage,
       });
 
       await this.postProcessNotification(notification);
@@ -151,5 +157,94 @@ export class NotificationService {
       timestamp: Date.now(),
       metrics,
     });
+  }
+
+  private createReadableMessage(notification: TransactionNotification): string {
+    const {
+      type,
+      addresses,
+      totalBTC,
+      totalUSD,
+      balanceDifference,
+      senderAddresses,
+      receiverAddresses,
+    } = notification;
+
+    const formatBTC = (amount: number) => `${amount.toFixed(8)} BTC`;
+    const formatUSD = (amount: number | undefined) =>
+      amount ? ` ($${amount.toFixed(2)})` : "";
+    const formatAddressList = (addrs: string[] = [], limit: number = 2) => {
+      if (addrs.length === 0) return "Unknown";
+      if (addrs.length === 1) return addrs[0];
+      if (addrs.length <= limit) return addrs.join(", ");
+      return `${addrs.slice(0, limit).join(", ")} + ${
+        addrs.length - limit
+      } more`;
+    };
+
+    // Определяем типы адресов
+    const incomingAddresses = addresses.filter(
+      (addr) => addr.direction === "output"
+    );
+    const outgoingAddresses = addresses.filter(
+      (addr) => addr.direction === "input"
+    );
+
+    if (type === "incoming") {
+      const address = incomingAddresses[0];
+      const fromAddresses = formatAddressList(senderAddresses, 1);
+      return `Address ${address.name} receives ${formatBTC(
+        address.amount
+      )}${formatUSD(address.amountUSD)} from ${fromAddresses} | ${
+        address.addressType || "Unknown"
+      } | TX: ${notification.txHash}`;
+    }
+
+    if (type === "outgoing") {
+      const address = outgoingAddresses[0];
+      const toAddresses = formatAddressList(receiverAddresses, 1);
+      return `Address ${address.name} sends ${formatBTC(
+        address.amount
+      )}${formatUSD(address.amountUSD)} to ${toAddresses} | ${
+        address.addressType || "Unknown"
+      } | TX: ${notification.txHash}`;
+    }
+
+    if (type === "both") {
+      const totalIncoming = incomingAddresses.reduce(
+        (sum, addr) => sum + addr.amount,
+        0
+      );
+      const totalOutgoing = outgoingAddresses.reduce(
+        (sum, addr) => sum + addr.amount,
+        0
+      );
+      const netBalance = totalIncoming - totalOutgoing;
+
+      const addressName = addresses[0].name;
+      const addressType = addresses[0].addressType || "Unknown";
+
+      const fromAddresses = formatAddressList(senderAddresses, 2);
+      const toAddresses = formatAddressList(receiverAddresses, 2);
+
+      const balanceText =
+        netBalance >= 0
+          ? `net balance +${formatBTC(netBalance)}${formatUSD(
+              (totalUSD || 0) * (netBalance / totalBTC)
+            )}`
+          : `net balance ${formatBTC(netBalance)}${formatUSD(
+              (totalUSD || 0) * (netBalance / totalBTC)
+            )}`;
+
+      return `Address ${addressName} (${addressType}) received ${formatBTC(
+        totalIncoming
+      )} from ${fromAddresses}, sent ${formatBTC(
+        totalOutgoing
+      )} to ${toAddresses} - ${balanceText} | TX: ${notification.txHash}`;
+    }
+
+    return `Transaction detected for ${addresses.length} addresses: ${formatBTC(
+      totalBTC
+    )}${formatUSD(totalUSD)} | TX: ${notification.txHash}`;
   }
 }

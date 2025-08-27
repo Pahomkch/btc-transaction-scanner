@@ -114,6 +114,8 @@ export interface TransactionNotification {
   totalUSD?: number;
   balanceDifference?: number; // For transactions with both incoming/outgoing
   opReturnData?: OpReturnData;
+  senderAddresses?: string[]; // Addresses that sent funds (for incoming/both)
+  receiverAddresses?: string[]; // Addresses that received funds (for outgoing/both)
 }
 
 export interface OpReturnData {
