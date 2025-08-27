@@ -22,11 +22,8 @@ export class BlockMonitor {
 
   constructor(config: Config) {
     this.config = config;
-
     this.rpcClient = new BitcoinRPCClient(config.rpcUrl);
-
     this.blockParser = new BlockParser();
-
     const watchedAddresses: WatchedAddresses = {};
 
     config.addresses.forEach((addr) => {

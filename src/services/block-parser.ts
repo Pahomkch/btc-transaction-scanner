@@ -7,7 +7,6 @@ import {
 } from "../types/bitcoin";
 
 export class BlockParser {
-  // TODO
   async *parseBlockTransactions(
     block: RawBlock
   ): AsyncGenerator<Transaction, void, unknown> {
