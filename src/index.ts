@@ -23,7 +23,11 @@ class BitcoinTransactionScanner {
       if (fs.existsSync(configPath)) {
         const configFile = fs.readFileSync(configPath, "utf8");
         config = JSON.parse(configFile);
-        config.rpcUrl = String(process.env.BTC_RPC_URL);
+
+        if (process.env.BTC_RPC_URL) {
+          config.rpcUrl = process.env.BTC_RPC_URL;
+        }
+
         console.log(`Configuration loaded from: ${configPath}`);
       } else {
         throw new Error("Config file not found");

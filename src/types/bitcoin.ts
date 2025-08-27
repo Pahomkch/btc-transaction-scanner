@@ -3,7 +3,6 @@
 export interface BitcoinAddress {
   address: string;
   name?: string;
-  type: 'legacy' | 'segwit' | 'bech32';
 }
 
 export interface WatchedAddresses {
@@ -99,6 +98,7 @@ export interface TransactionOutput {
     reqSigs?: number;
     type: string;
     addresses?: string[];
+    desc?: string; // Address descriptor (QuickNode format)
   };
 }
 
