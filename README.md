@@ -18,6 +18,8 @@ Bitcoin Transaction Scanner is designed to provide real-time monitoring of Bitco
 
 ## 🚀 Quick Start
 
+- Past your QuickNode node url to BTC_RPC_URL env
+
 ### Prerequisites
 - Node.js >= 18.0.0
 - Bitcoin RPC endpoint (QuickNode, local node, etc.)
