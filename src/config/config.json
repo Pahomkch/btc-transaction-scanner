@@ -1,5 +1,4 @@
 {
-  "rpcUrl": "use env BTC_RPC_URL variable for QuickNode",
   "addresses": [
     {
       "address": "3H9WXKYPqq4xo3ahuQvEDcDJBgFJcxGLpJ",
