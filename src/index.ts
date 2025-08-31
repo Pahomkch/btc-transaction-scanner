@@ -2,8 +2,11 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { config as loadEnv } from "dotenv";
 import { BlockMonitor } from "./services/block-monitor";
 import { Config } from "./types/bitcoin";
+
+loadEnv();
 class BitcoinTransactionScanner {
   private monitor: BlockMonitor;
   private config: Config;
@@ -18,14 +21,17 @@ class BitcoinTransactionScanner {
     let config: Config;
 
     try {
-      const configPath = process.env.CONFIG_PATH || path.join(__dirname, "../src/config/config.json");
+      const configPath =
+        process.env.CONFIG_PATH ||
+        path.join(__dirname, "../src/config/config.json");
 
       if (fs.existsSync(configPath)) {
         const configFile = fs.readFileSync(configPath, "utf8");
         config = JSON.parse(configFile);
+        config.rpcUrl = process.env.BTC_RPC_URL || "";
 
-        if (process.env.BTC_RPC_URL) {
-          config.rpcUrl = process.env.BTC_RPC_URL;
+        if (!config.rpcUrl) {
+          throw new Error("BTC_RPC_URL environment variable is required");
         }
 
         console.log(`Configuration loaded from: ${configPath}`);

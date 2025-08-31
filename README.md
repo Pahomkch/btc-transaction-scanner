@@ -117,7 +117,6 @@ Edit `src/config/config.json`:
 
 ```json
 {
-  "rpcUrl": "https://your-quicknode-endpoint.com/api-key",
   "addresses": [
     {
       "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
