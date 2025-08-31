@@ -54,11 +54,10 @@ export class AddressDetector {
     const hasWatchedAddress = addressInvolvements.length > 0;
     const transactionType = this.determineTransactionType(addressInvolvements);
 
-    const allAddresses = await this.getAllTransactionAddresses(
-      transaction,
-      inputs,
-      outputs
-    );
+    const allAddresses = {
+      senders: inputs.filter(addr => addr && addr.length > 10),
+      receivers: outputs.filter(addr => addr && addr.length > 10)
+    };
 
     return {
       hasWatchedAddress,
@@ -357,7 +356,7 @@ export class AddressDetector {
             });
           }
         } catch (error) {
-          console.error(error)
+          console.error(error);
         }
       }
     }

@@ -135,7 +135,6 @@ export class BlockParser {
     };
 
     try {
-      // Попытка декодирования в UTF-8
       const buffer = Buffer.from(hexData, "hex");
       const decoded = buffer.toString("utf8");
 

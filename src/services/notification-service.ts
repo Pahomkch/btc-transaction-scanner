@@ -67,7 +67,6 @@ export class NotificationService {
         readable_message: readableMessage,
       });
 
-      await this.postProcessNotification(notification);
     } catch (error) {
       this.logger.error("notification_send_failed", {
         error: error instanceof Error ? error.message : "Unknown error",
@@ -122,14 +121,6 @@ export class NotificationService {
     } catch (error) {
       console.warn("Failed to update BTC price:", error);
     }
-  }
-  private async postProcessNotification(
-    notification: TransactionNotification
-  ): Promise<void> {
-    // Здесь можно добавить:
-    // - Отправку метрик в систему мониторинга
-    // - Сохранение уведомлений в базу данных
-    // - Интеграцию с внешними системами алертов
   }
 
   async sendSystemNotification(

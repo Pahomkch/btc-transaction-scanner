@@ -37,6 +37,10 @@
       "note": "P2SH (incoming only)"
     },
     {
+      "address": "45c8ab7519e9742e49316c5121d5fa4bc7523681dcf2b3b1a7f3be83fe61e27c",
+      "name": "OP_RETURN Test Transaction"
+    },
+    {
       "address": "bc1pcmqra6kda7flclneadkp77epvxdr8gnmg9h0unga9xp9g9pcmnnshyc9w0",
       "name": "P2TR Incoming Address",
       "note": "P2TR (incoming only)"
@@ -62,7 +66,7 @@
       "note": "P2PKH (outgoing only)"
     }
   ],
-  "pollingIntervalMs": 5000,
+  "pollingIntervalMs": 1000,
   "maxMemoryMB": 512,
   "usdPriceEnabled": true,
   "logLevel": "info"
