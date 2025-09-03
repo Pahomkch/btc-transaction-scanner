@@ -291,16 +291,20 @@ export class AddressDetector {
       return "Taproot P2TR";
     }
 
-    if (
-      address.startsWith("m") ||
-      address.startsWith("n") ||
-      address.startsWith("2")
-    ) {
-      return "Unknown";
+    if (address.startsWith("tb1q")) {
+      return "SegWit Bech32";
     }
 
-    if (address.startsWith("tb1q") || address.startsWith("tb1p")) {
-      return "Unknown";
+    if (address.startsWith("tb1p")) {
+      return "Taproot P2TR";
+    }
+
+    if (address.startsWith("m") || address.startsWith("n")) {
+      return "Legacy P2PKH";
+    }
+
+    if (address.startsWith("2")) {
+      return "Legacy P2SH";
     }
 
     return "Unknown";
